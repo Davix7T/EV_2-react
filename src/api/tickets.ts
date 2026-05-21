@@ -19,11 +19,30 @@ export type TicketResponse = {
   closedAt: string | null;
 };
 
+export type TicketCreateDto = {
+  titulo: string;
+  descripcion: string;
+  prioridad: string;
+  categoriaId: number | null;
+};
+
 export const ticketApi = {
   async findAll(): Promise<TicketResponse[]> {
     const res = await http<ApiResponse<TicketResponse[]>>("/api/tickets");
     if (res === null) {
       throw new Error("No se pudo cargar la lista de tickets");
+    }
+    return res.data;
+  },
+
+  async create(dto: TicketCreateDto): Promise<TicketResponse> {
+    const res = await http<ApiResponse<TicketResponse>>("/api/tickets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dto),
+    });
+    if (res === null) {
+      throw new Error("No se pudo crear el ticket");
     }
     return res.data;
   },

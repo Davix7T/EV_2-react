@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { ticketApi, type TicketResponse } from "../api/tickets";
+import { categoryApi, type CategoryResponse } from "../api/categories";
 
 const statusOptions: string[] = ["", "ABIERTO", "EN_PROCESO", "PENDIENTE", "RESUELTO", "CERRADO"];
 const priorityOptions: string[] = ["", "BAJA", "MEDIA", "ALTA", "CRITICA"];
@@ -13,22 +14,30 @@ const HomePage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [priorityFilter, setPriorityFilter] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
+  const [ticketTitle, setTicketTitle] = useState<string>("");
+  const [ticketDescription, setTicketDescription] = useState<string>("");
+  const [ticketPriority, setTicketPriority] = useState<string>("");
+  const [ticketCategoryId, setTicketCategoryId] = useState<string>("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    const loadTickets = async (): Promise<void> => {
+    const loadData = async (): Promise<void> => {
       setLoading(true);
       setError(null);
       try {
-        const data = await ticketApi.findAll();
-        setTickets(data);
+        const [ticketData, categoryData] = await Promise.all([ticketApi.findAll(), categoryApi.findAll()]);
+        setTickets(ticketData);
+        setCategories(categoryData);
       } catch (err: unknown) {
-        setError((err as Error).message || "No se pudieron cargar los tickets");
+        setError((err as Error).message || "No se pudieron cargar los datos");
       } finally {
         setLoading(false);
       }
     };
 
-    loadTickets();
+    loadData();
   }, []);
 
   const filteredTickets = useMemo(() => {
@@ -41,6 +50,43 @@ const HomePage: React.FC = () => {
       return matchesStatus && matchesPriority && matchesCategory;
     });
   }, [tickets, statusFilter, priorityFilter, categoryFilter]);
+
+  const handleCreateTicket = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setFormError(null);
+
+    if (!ticketTitle.trim()) {
+      setFormError("El título es obligatorio");
+      return;
+    }
+    if (!ticketDescription.trim()) {
+      setFormError("La descripción es obligatoria");
+      return;
+    }
+    if (!ticketPriority) {
+      setFormError("La prioridad es obligatoria");
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      const created = await ticketApi.create({
+        titulo: ticketTitle,
+        descripcion: ticketDescription,
+        prioridad: ticketPriority,
+        categoriaId: ticketCategoryId ? Number(ticketCategoryId) : null,
+      });
+      setTickets((current) => [created, ...current]);
+      setTicketTitle("");
+      setTicketDescription("");
+      setTicketPriority("");
+      setTicketCategoryId("");
+    } catch (err: unknown) {
+      setFormError((err as Error).message || "No se pudo crear el ticket");
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -60,6 +106,65 @@ const HomePage: React.FC = () => {
         </div>
 
         <section style={{ marginTop: '1.5rem' }}>
+          <h3 className="title" style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Crear nuevo ticket</h3>
+          {formError && <div className="error">{formError}</div>}
+          <form onSubmit={handleCreateTicket} style={{ marginBottom: '1.5rem' }}>
+            <label className="label">Título</label>
+            <input
+              className="input"
+              value={ticketTitle}
+              onChange={(e) => setTicketTitle(e.target.value)}
+              disabled={formLoading}
+            />
+
+            <label className="label">Descripción</label>
+            <textarea
+              className="input"
+              value={ticketDescription}
+              onChange={(e) => setTicketDescription(e.target.value)}
+              rows={4}
+              disabled={formLoading}
+            />
+
+            <label className="label">Prioridad</label>
+            <select
+              className="input"
+              value={ticketPriority}
+              onChange={(e) => setTicketPriority(e.target.value)}
+              disabled={formLoading}
+            >
+              <option value="">Seleccione una prioridad</option>
+              {priorityOptions.slice(1).map((priorityOption) => (
+                <option key={priorityOption} value={priorityOption}>
+                  {priorityOption}
+                </option>
+              ))}
+            </select>
+
+            <label className="label">Categoría</label>
+            <select
+              className="input"
+              value={ticketCategoryId}
+              onChange={(e) => setTicketCategoryId(e.target.value)}
+              disabled={formLoading}
+            >
+              <option value="">Sin categoría</option>
+              {categories.map((category) => (
+                <option key={category.id} value={String(category.id)}>
+                  {category.nombre}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="submit"
+              className={`btn btn-primary ${formLoading ? 'btn-disabled' : ''}`}
+              disabled={formLoading}
+            >
+              {formLoading ? "Creando ticket…" : "Crear ticket"}
+            </button>
+          </form>
+
           <h3 className="title" style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Listado de tickets</h3>
           <div className="filters-box">
             <label className="label">Estado</label>
