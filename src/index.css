@@ -18,3 +18,9 @@ body { background: #f3f4f6; color: #111827; }
 
 .meta { margin-bottom: 0.5rem; }
 
+.filters-box { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.ticket-list { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+.ticket-card { background: #f9fafb; border: 1px solid #d1d5db; border-radius: 8px; padding: 1rem; }
+.ticket-card .ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+.ticket-card .ticket-header span { background: #e5e7eb; color: #111827; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.85rem; }
+
